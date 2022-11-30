@@ -32,9 +32,7 @@ scale_fill_discrete = scale_fill_viridis_d
 
 ## Problem 2
 
-Create a city_state variable (e.g. “Baltimore, MD”), and a binary variable indicating whether the homicide is solved. Omit cities Dallas, TX; Phoenix, AZ; and Kansas City, MO – these don’t report victim race. Also omit Tulsa, AL – this is a data entry mistake. For this problem, limit your analysis those for whom victim_race is white or black. Be sure that victim_age is numeric.
-
-First we read in the homicide data from the Washington Post
+First we will read in the homicide data from the Washington Post
 
 ```{r, warning = FALSE}
 
@@ -63,10 +61,12 @@ homicide_data =
   
   mutate(victim_race = fct_relevel(victim_race, "White"))
 
-  
+
+head(homicide_data, 20)
+
 ```
 
-For the city of Baltimore, MD, use the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race as predictors. Save the output of glm as an R object; apply the broom::tidy to this object; and obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing male victims to female victims keeping all other variables fixed.
+For the city of Baltimore, MD we will use the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race as predictors and obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing male victims to female victims keeping all other variables fixed.
 
 ```{r}
 
@@ -86,13 +86,15 @@ homicide_data %>%
   
   mutate(log_OR = log(estimate)) %>%
   
-  select(term, log_OR, OR, conf.low, conf.high, p.value) %>% view
-  
+  select(term, log_OR, OR, conf.low, conf.high, p.value)
+
+
+head(fit_logistic, 20)
   
 ```
 
 
-Now run glm for each of the cities in your dataset, and extract the adjusted odds ratio (and CI) for solving homicides comparing male victims to female victims. Do this within a “tidy” pipeline, making use of purrr::map, list columns, and unnest as necessary to create a dataframe with estimated ORs and CIs for each city.
+Now we will run the glm function for each of the cities in the dataset, and extract the adjusted odds ratio (and CI) for solving homicides comparing male victims to female victims.
 
 
 ```{r}
@@ -115,14 +117,17 @@ fit_all =
   
   filter(term %in% "victim_sexMale") %>%
   
-  select(city_state, term, log_OR, OR, conf.low, conf.high, p.value) %>% view
+  select(city_state, term, log_OR, OR, conf.low, conf.high, p.value)
+
+head(fit_all, 20)
 ```
 
 
-Create a plot that shows the estimated ORs and CIs for each city. Organize cities according to estimated OR, and comment on the plot.
+Now we will create a plot that shows the estimated ORs and CIs for each city and organize cities according to estimated OR.
 
 ```{r}
- ggplot(fit_all1, aes(x = OR, y = reorder(city_state, OR))) + 
+
+ ggplot(fit_all, aes(x = OR, y = reorder(city_state, OR))) + 
     
   geom_point() + 
     
@@ -140,26 +145,24 @@ Create a plot that shows the estimated ORs and CIs for each city. Organize citie
 
 ```
 
-The odds of having a homicide solved if the victim is Male is the highest in Albuquerque compared to if the victim is female. The odds of having a homicide solved if the victim is male is the lowest in New York City compared to if the victim is female. 
 
 The odds of being male in a solved homicide in Albuquerque is 1.76 times more likely than being female and is the highest in the USA. The odds of being male in a solved homicide in New York City is 0.26 times more likely than being female and is the lowest in the USA. We see that in the majority of cities it is less likely to be a male victim in a solved homicide than being female as the majority of cities have an odds ratio that is less than 1 for being a male victim. Only 6 cities out of the 47 in this data set had an odds ratio greater than 1 for being a male victim in a solved homicide. However there is significant dispersion in the data and the confidence intervals are fairly large so the odds ratio data must be interpreted with caution. 
 
+
 ## Problem 3
 
-
 First we will load the birthweight data
-
-Load and clean the data for regression analysis (i.e. convert numeric to factor where appropriate, check for missing data, etc.).
-
-
 
 ```{r}
 
 birth_weight = read_csv("hw6_data/birthweight.csv", na = "") %>%
   
   mutate(babysex = as.factor(babysex),
+         
          frace = as.factor(frace),
+         
          malform = as.factor(malform),
+         
          mrace = as.factor(mrace))
   
   anyNA(birth_weight)
@@ -168,9 +171,7 @@ birth_weight = read_csv("hw6_data/birthweight.csv", na = "") %>%
 ```
 
 
-Propose a regression model for birthweight. This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. Describe your modeling process and show a plot of model residuals against fitted values – use add_predictions and add_residuals in making this plot.
-
-I am proposing a model for birthweight with the predictors being number of cigarettes smoked by the mother during pregnancy, the presence of malformations, the babys head circumference, the baby's length, and the gestational age in weeks. I believe these factors play a significant role in determining the baby's weight at birth because the mother smoking cigarettes affects fetus development, malformations can affect weight, head circumference is directly linked to weight as well as the baby's length and it is known that a premature gestational age results in a lower weight for the child at birth. 
+I am proposing a model for birthweight with the predictors being number of cigarettes smoked by the mother during pregnancy, the presence of malformations, the babys head circumference, the baby's length, and the gestational age in weeks. I believe these factors play a significant role in determining the baby's weight at birth because the mother smoking cigarettes affects fetus development and its birth weight, malformations can affect weight causing the baby to weigh less at birth, head circumference is directly linked to weight as the larger circumference leads to higher weight, and the longer a baby is the more they will weigh at birth. Additionally, premature gestational age results in a lower weight for the child at birth. All of these
 
 ```{r}
 birth_model = 
@@ -185,34 +186,83 @@ birth_model =
   select(term, estimate, p.value)
   
 
-
   birth_weight %>%
   
   modelr::add_residuals(birth_model) %>%
   
   modelr::add_predictions(birth_model) %>% 
+    
   ggplot(aes(x = pred, y = resid)) +
   
   geom_point(alpha = 0.3) + 
   
-  geom_smooth(se = FALSE, method = "lm")
+  geom_smooth(se = FALSE, method = "lm") + 
+  
+  labs(title = "Residuals vs Fitted values for my model", 
+       x = "Fitted Values", 
+       
+       y = "Residuals")
   
   
 ```
 
-Compare your model to two others:
+Looking at the residuals vs fitted values for the model I developed we see that the residual values bounce around the zero line which suggests that a linear relationships between the terms is appropriate to model. 
 
-One using length at birth and gestational age as predictors (main effects only)
-One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
-Make this comparison in terms of the cross-validated prediction error; use crossv_mc and functions in purrr as appropriate.
+Now we will compare this model to two others:
 
+* One using length at birth and gestational age as predictors (main effects only)
+
+* One using head circumference, length, sex, and all interactions (including the three-way interaction). 
 
 ```{r}
 compare1 = lm(bwt ~ blength + gaweeks, data = birth_weight)
 
 compare2 = lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + babysex*blength + bhead*blength*babysex, data = birth_weight)
 
+
 cv_df = crossv_mc(birth_weight, 100)
+
+cv_df = 
+  
+  cv_df %>%
+  
+  mutate(
+    train = map(train, as_tibble),
+    
+    test = map(test, as_tibble))
+
+cv_compare = 
+  cv_df %>%
+  
+  mutate(
+    my_model = map(train, ~lm(bwt ~ smoken + malform + bhead + blength + gaweeks, data = .x)), 
+    
+    length_gaweeks = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
+    
+    head_length_sex = map(train, ~lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + babysex*blength + bhead*blength*babysex, data = .x))) %>%
+  
+  mutate(
+    rmse_my_model = map2_dbl(my_model, test, ~rmse(model = .x, data = .y)),
+    
+    rmse_length_gaweeks = map2_dbl(length_gaweeks, test, ~rmse(model = .x, data = .y)),
+    
+    rmse_head_length_sex = map2_dbl(head_length_sex, test, ~rmse(model = .x, data = .y)))
+
+cv_compare %>%
+  
+  select(starts_with("rmse")) %>%
+  
+  pivot_longer(
+    everything(),
+    names_to = "model",
+    values_to = "rmse",
+    names_prefix = "rmse_") %>%
+  
+  mutate(model = fct_inorder(model)) %>%
+  
+  ggplot(aes(x = model, y = rmse)) + 
+  
+  geom_violin()
 ```
 
-
+We see there is higher error in the model that utilizes the baby's length and gestational age as predictors for birth weight. The model I developed which has predictors of predictors being number of cigarettes smoked by the mother during pregnancy, the presence of malformations, the babys head circumference, the baby's length, and the gestational age, and the model containing the baby's head circumference, length, and sex have comparable RMSE values but there is more dispersion in the model I developed. 
