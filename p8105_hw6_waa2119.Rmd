@@ -10,6 +10,8 @@ output: github_document
 
 library(tidyverse)
 library(lubridate)
+library(modelr)
+library(mgcv)
 
 knitr::opts_chunk$set(
   fig.width = 6,
@@ -191,8 +193,26 @@ birth_model =
   modelr::add_predictions(birth_model) %>% 
   ggplot(aes(x = pred, y = resid)) +
   
-  geom_point(alpha = 0.3)
+  geom_point(alpha = 0.3) + 
+  
+  geom_smooth(se = FALSE, method = "lm")
   
   
 ```
+
+Compare your model to two others:
+
+One using length at birth and gestational age as predictors (main effects only)
+One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
+Make this comparison in terms of the cross-validated prediction error; use crossv_mc and functions in purrr as appropriate.
+
+
+```{r}
+compare1 = lm(bwt ~ blength + gaweeks, data = birth_weight)
+
+compare2 = lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + babysex*blength + bhead*blength*babysex, data = birth_weight)
+
+cv_df = crossv_mc(birth_weight, 100)
+```
+
 
